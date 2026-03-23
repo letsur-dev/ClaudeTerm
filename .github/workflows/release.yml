@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Update version in build script
+        run: |
+          sed -i '' "s/<string>0.1.0<\/string>/<string>${{ steps.version.outputs.VERSION }}<\/string>/" scripts/build-app.sh
+
+      - name: Build release binary
+        run: ./scripts/build-app.sh
+
+      - name: Create ZIP
+        run: |
+          cd dist
+          zip -r ClaudeTerm-${{ steps.version.outputs.VERSION }}.zip ClaudeTerm.app
+
+      - name: Create DMG
+        run: |
+          hdiutil create -volname "ClaudeTerm" \
+            -srcfolder dist/ClaudeTerm.app \
+            -ov -format UDZO \
+            dist/ClaudeTerm-${{ steps.version.outputs.VERSION }}.dmg
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/ClaudeTerm-${{ steps.version.outputs.VERSION }}.zip
+            dist/ClaudeTerm-${{ steps.version.outputs.VERSION }}.dmg

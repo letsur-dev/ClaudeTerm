@@ -1,0 +1,6 @@
+.build/
+.build.pre-rename-cache/
+.swiftpm/
+.claude/
+.DS_Store
+dist/
